@@ -88,7 +88,7 @@ void StreamServerComponent::accept() {
 
     if (!is_ip_whitelisted(client_ip)) {
         ESP_LOGW(TAG, "Client %s is not whitelisted and will be disconnected.", identifier.c_str());
-        #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
+        #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_INFO
             log_whitelist();
         #endif
         socket->shutdown(SHUT_RDWR); // Disconnect non-whitelisted client
@@ -139,6 +139,7 @@ void StreamServerComponent::read() {
         len = std::min<size_t>(available, std::min<size_t>(this->buf_ahead(this->buf_head_), free));
         this->stream_->read_array(&this->buf_[this->buf_index(this->buf_head_)], len);
 
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
         // Debug log the serial data
         std::string hex_rep;
         std::string char_rep;
@@ -148,7 +149,8 @@ void StreamServerComponent::read() {
             hex_rep += buf;
             char_rep += isprint(this->buf_[this->buf_index(this->buf_head_) + i]) ? this->buf_[this->buf_index(this->buf_head_) + i] : '.';
         }
-        ESP_LOGD(TAG, "Serial data read (%u bytes): %s (%s)", len, hex_rep.c_str(), char_rep.c_str());
+        ESP_LOGV(TAG, "Serial data read (%u bytes): %s (%s)", len, hex_rep.c_str(), char_rep.c_str());
+#endif
 
         this->buf_head_ += len;
     }
@@ -195,7 +197,7 @@ void StreamServerComponent::write() {
 
         while ((read = client.socket->read(&buf, sizeof(buf))) > 0) {
             this->stream_->write_array(buf, read);
-
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
             // Debug log out IP traffic
             std::string hex_rep;
             std::string char_rep;
@@ -205,7 +207,8 @@ void StreamServerComponent::write() {
                 hex_rep += temp;
                 char_rep += isprint(buf[i]) ? buf[i] : '.';
             }
-            ESP_LOGD(TAG, "IP data from %s (%zd bytes): %s (%s)", client.identifier.c_str(), read, hex_rep.c_str(), char_rep.c_str());
+            ESP_LOGV(TAG, "IP data from %s (%zd bytes): %s (%s)", client.identifier.c_str(), read, hex_rep.c_str(), char_rep.c_str());
+#endif            
         }
 
         if (read == 0 || errno == ECONNRESET) {
