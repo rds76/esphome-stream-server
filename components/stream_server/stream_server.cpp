@@ -41,9 +41,17 @@ void StreamServerComponent::loop() {
     this->cleanup();
 }
 
-void StreamServerComponent::dump_config() {
+void StreamServerComponent::dump_config() {    
     ESP_LOGCONFIG(TAG, "Stream Server:");
-    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address(), this->port_);
+    
+    const char* addr =  -> const char* {
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
+      return esphome::network::get_use_address();
+#else
+      return esphome::network::get_use_address().c_str();
+#endif
+    }();
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u", addr, this->port_);
 #ifdef USE_BINARY_SENSOR
     LOG_BINARY_SENSOR("  ", "Connected:", this->connected_sensor_);
 #endif
@@ -83,7 +91,15 @@ void StreamServerComponent::accept() {
         return;
 
     socket->setblocking(false);
+    
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 1, 0)
+    char buf[esphome::socket::SOCKADDR_STR_LEN] = {0};
+    auto n = socket->getpeername_to(std::span<char, esphome::socket::SOCKADDR_STR_LEN>(buf, sizeof(buf)));
+    std::string identifier = (n > 0) ? std::string(buf, n) : std::string("<unknown>");
+#else
     std::string identifier = socket->getpeername();
+#endif
+
     esphome::network::IPAddress client_ip(identifier);
 
     if (!is_ip_whitelisted(client_ip)) {
