@@ -42,16 +42,12 @@ void StreamServerComponent::loop() {
 }
 
 void StreamServerComponent::dump_config() {    
-    ESP_LOGCONFIG(TAG, "Stream Server:");
-    
-    const char* addr =  -> const char* {
+    ESP_LOGCONFIG(TAG, "Stream Server:");        
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
-      return esphome::network::get_use_address();
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address(), this->port_);
 #else
-      return esphome::network::get_use_address().c_str();
-#endif
-    }();
-    ESP_LOGCONFIG(TAG, "  Address: %s:%u", addr, this->port_);
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address().c_str(), this->port_);      
+#endif    
 #ifdef USE_BINARY_SENSOR
     LOG_BINARY_SENSOR("  ", "Connected:", this->connected_sensor_);
 #endif
