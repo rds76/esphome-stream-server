@@ -73,9 +73,11 @@ void StreamServerComponent::publish_sensor() {
 }
 
 void StreamServerComponent::log_whitelist() {
+    char buf[network::IP_ADDRESS_BUFFER_SIZE];
     ESP_LOGI(TAG, "Current whitelist is:");
     for (const auto &ip : this->whitelist_) {
-        ESP_LOGI(TAG, "\t'%s'", ip.str().c_str());
+        ip.str_to(buf);
+        ESP_LOGI(TAG, "\t'%s'", buf);
     }
 }
 
