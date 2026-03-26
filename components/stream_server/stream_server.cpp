@@ -100,7 +100,7 @@ void StreamServerComponent::accept() {
 #else
     std::string identifier = socket->getpeername();
 #endif
-/*
+
     esphome::network::IPAddress client_ip(identifier);
 
     if (!is_ip_whitelisted(client_ip)) {
@@ -111,7 +111,7 @@ void StreamServerComponent::accept() {
         socket->shutdown(SHUT_RDWR); // Disconnect non-whitelisted client
         return;
     }
-*/
+
     this->clients_.emplace_back(std::move(socket), identifier, this->buf_head_);
     if( is_whitelist_empty() ){
         ESP_LOGI(TAG, "New client connected from %s", identifier.c_str());
