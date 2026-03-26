@@ -82,10 +82,6 @@ protected:
     std::unique_ptr<uint8_t[]> buf_{};
     size_t buf_head_{0};
     size_t buf_tail_{0};
-#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)
-    esphome::socket::ListenSocket *socket_{nullptr};
-#else
     std::unique_ptr<esphome::socket::Socket> socket_{};
-#endif    
     std::vector<Client> clients_{};
 };
