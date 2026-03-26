@@ -3,6 +3,7 @@ import esphome.config_validation as cv
 from esphome.components import uart
 from esphome.components.network import IPAddress
 from esphome.const import CONF_ID, CONF_PORT, CONF_BUFFER_SIZE
+from esphome.util import parse_esphome_version
 
 # ESPHome doesn't know the Stream abstraction yet, so hardcode to use a UART for now.
 
@@ -52,6 +53,10 @@ async def to_code(config):
     # Register component
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+
+    esphome_version = parse_esphome_version()
+    if (2025, 12, 0) <= esphome_version < (2026, 3, 0):
+        uart.request_wake_loop_on_rx()
 
     # Pass the entire whitelist to the component
     if CONF_WHITELIST in config:
