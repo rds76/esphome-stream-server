@@ -24,8 +24,11 @@ void StreamServerComponent::setup() {
 #else
     socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), htons(this->port_));
 #endif
-
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)    
+    this->socket_ = socket::socket_ip_loop_monitored(SOCK_STREAM, PF_INET).release();
+#else
     this->socket_ = socket::socket_ip(SOCK_STREAM, PF_INET);
+#endif    
     this->socket_->setblocking(false);
     this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), bind_addrlen);
     this->socket_->listen(8);
@@ -41,9 +44,13 @@ void StreamServerComponent::loop() {
     this->cleanup();
 }
 
-void StreamServerComponent::dump_config() {
-    ESP_LOGCONFIG(TAG, "Stream Server:");
-    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address().c_str(), this->port_);
+void StreamServerComponent::dump_config() {    
+    ESP_LOGCONFIG(TAG, "Stream Server:");        
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address(), this->port_);
+#else
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address().c_str(), this->port_);      
+#endif    
 #ifdef USE_BINARY_SENSOR
     LOG_BINARY_SENSOR("  ", "Connected:", this->connected_sensor_);
 #endif
@@ -69,9 +76,11 @@ void StreamServerComponent::publish_sensor() {
 }
 
 void StreamServerComponent::log_whitelist() {
+    char buf[network::IP_ADDRESS_BUFFER_SIZE];
     ESP_LOGI(TAG, "Current whitelist is:");
     for (const auto &ip : this->whitelist_) {
-        ESP_LOGI(TAG, "\t'%s'", ip.str().c_str());
+        ip.str_to(buf);
+        ESP_LOGI(TAG, "\t'%s'", buf);
     }
 }
 
@@ -83,12 +92,20 @@ void StreamServerComponent::accept() {
         return;
 
     socket->setblocking(false);
+    
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 1, 0)
+    char buf[esphome::socket::SOCKADDR_STR_LEN] = {0};
+    auto n = socket->getpeername_to(std::span<char, esphome::socket::SOCKADDR_STR_LEN>(buf, sizeof(buf)));
+    std::string identifier = (n > 0) ? std::string(buf, n) : std::string("<unknown>");
+#else
     std::string identifier = socket->getpeername();
+#endif
+
     esphome::network::IPAddress client_ip(identifier);
 
     if (!is_ip_whitelisted(client_ip)) {
         ESP_LOGW(TAG, "Client %s is not whitelisted and will be disconnected.", identifier.c_str());
-        #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
+        #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_INFO
             log_whitelist();
         #endif
         socket->shutdown(SHUT_RDWR); // Disconnect non-whitelisted client
@@ -139,6 +156,7 @@ void StreamServerComponent::read() {
         len = std::min<size_t>(available, std::min<size_t>(this->buf_ahead(this->buf_head_), free));
         this->stream_->read_array(&this->buf_[this->buf_index(this->buf_head_)], len);
 
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
         // Debug log the serial data
         std::string hex_rep;
         std::string char_rep;
@@ -148,7 +166,8 @@ void StreamServerComponent::read() {
             hex_rep += buf;
             char_rep += isprint(this->buf_[this->buf_index(this->buf_head_) + i]) ? this->buf_[this->buf_index(this->buf_head_) + i] : '.';
         }
-        ESP_LOGD(TAG, "Serial data read (%u bytes): %s (%s)", len, hex_rep.c_str(), char_rep.c_str());
+        ESP_LOGV(TAG, "Serial data read (%u bytes): %s (%s)", len, hex_rep.c_str(), char_rep.c_str());
+#endif
 
         this->buf_head_ += len;
     }
@@ -195,7 +214,7 @@ void StreamServerComponent::write() {
 
         while ((read = client.socket->read(&buf, sizeof(buf))) > 0) {
             this->stream_->write_array(buf, read);
-
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERBOSE
             // Debug log out IP traffic
             std::string hex_rep;
             std::string char_rep;
@@ -205,7 +224,8 @@ void StreamServerComponent::write() {
                 hex_rep += temp;
                 char_rep += isprint(buf[i]) ? buf[i] : '.';
             }
-            ESP_LOGD(TAG, "IP data from %s (%zd bytes): %s (%s)", client.identifier.c_str(), read, hex_rep.c_str(), char_rep.c_str());
+            ESP_LOGV(TAG, "IP data from %s (%zd bytes): %s (%s)", client.identifier.c_str(), read, hex_rep.c_str(), char_rep.c_str());
+#endif            
         }
 
         if (read == 0 || errno == ECONNRESET) {
