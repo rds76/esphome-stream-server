@@ -83,7 +83,7 @@ protected:
     size_t buf_head_{0};
     size_t buf_tail_{0};
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)
-    std::unique_ptr<esphome::socket::ListenSocket> socket_{};
+    std::unique_ptr<ListenSocket> socket_{};
 #else
     std::unique_ptr<esphome::socket::Socket> socket_{};
 #endif         
