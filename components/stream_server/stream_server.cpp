@@ -60,7 +60,7 @@ void StreamServerComponent::dump_config() {
 }
 
 void StreamServerComponent::on_shutdown() {
-#if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)    
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)   
     delete this->socket_;
     this->socket_ = nullptr;
 #endif    
