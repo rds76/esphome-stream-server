@@ -24,11 +24,11 @@ void StreamServerComponent::setup() {
 #else
     socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), htons(this->port_));
 #endif
-#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)    
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)
     this->socket_ = socket::socket_ip_loop_monitored(SOCK_STREAM, PF_INET).release();
 #else
     this->socket_ = socket::socket_ip(SOCK_STREAM, PF_INET);
-#endif    
+#endif
     this->socket_->setblocking(false);
     this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), bind_addrlen);
     this->socket_->listen(8);
@@ -44,13 +44,13 @@ void StreamServerComponent::loop() {
     this->cleanup();
 }
 
-void StreamServerComponent::dump_config() {    
-    ESP_LOGCONFIG(TAG, "Stream Server:");        
+void StreamServerComponent::dump_config() {
+    ESP_LOGCONFIG(TAG, "Stream Server:");
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
     ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address(), this->port_);
 #else
-    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address().c_str(), this->port_);      
-#endif    
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address().c_str(), this->port_);
+#endif
 #ifdef USE_BINARY_SENSOR
     LOG_BINARY_SENSOR("  ", "Connected:", this->connected_sensor_);
 #endif
@@ -60,10 +60,10 @@ void StreamServerComponent::dump_config() {
 }
 
 void StreamServerComponent::on_shutdown() {
-#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)   
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)
     delete this->socket_;
     this->socket_ = nullptr;
-#endif    
+#endif
     for (const Client &client : this->clients_)
         client.socket->shutdown(SHUT_RDWR);
 }
@@ -96,7 +96,7 @@ void StreamServerComponent::accept() {
         return;
 
     socket->setblocking(false);
-    
+
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 1, 0)
     char buf[esphome::socket::SOCKADDR_STR_LEN] = {0};
     auto n = socket->getpeername_to(std::span<char, esphome::socket::SOCKADDR_STR_LEN>(buf, sizeof(buf)));
@@ -122,7 +122,7 @@ void StreamServerComponent::accept() {
     } else {
         ESP_LOGI(TAG, "New whitelisted client connected from %s", identifier.c_str());
     }
-    
+
     this->publish_sensor();
 }
 
@@ -229,7 +229,7 @@ void StreamServerComponent::write() {
                 char_rep += isprint(buf[i]) ? buf[i] : '.';
             }
             ESP_LOGV(TAG, "IP data from %s (%zd bytes): %s (%s)", client.identifier.c_str(), read, hex_rep.c_str(), char_rep.c_str());
-#endif            
+#endif
         }
 
         if (read == 0 || errno == ECONNRESET) {

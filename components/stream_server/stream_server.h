@@ -87,6 +87,6 @@ protected:
     esphome::socket::ListenSocket *socket_{nullptr};
 #else
     std::unique_ptr<esphome::socket::Socket> socket_{};
-#endif         
+#endif
     std::vector<Client> clients_{};
 };
